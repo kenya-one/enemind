@@ -12,25 +12,35 @@ import {
   MapPin,
   Users,
   Clock,
-  FolderSync
+  FolderSync,
+  FileCheck,
+  Download,
+  AlertCircle,
+  Phone,
+  MessageCircle,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { HostelProperty } from '../types';
+import { HostelProperty, HostelBooking } from '../types';
+import { HostelBookingModal } from '../components/HostelBookingModal';
 
 export const LandlordChannelPage: React.FC = () => {
   const { user } = useAuth();
   const {
     hostels,
     addHostel,
+    hostelBookings,
+    addHostelBooking,
+    updateBookingStatus,
     openLiveSession,
-    openCheckout,
     openDriveModal,
     showToast
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'properties' | 'walkthroughs' | 'kyc' | 'payments'>('properties');
+  const [activeTab, setActiveTab] = useState<'properties' | 'bookings' | 'walkthroughs' | 'kyc'>('properties');
   const [showAddProperty, setShowAddProperty] = useState(false);
+  const [selectedHostelForBooking, setSelectedHostelForBooking] = useState<HostelProperty | null>(null);
 
   // Property Form states
   const [propTitle, setPropTitle] = useState('');
@@ -40,7 +50,11 @@ export const LandlordChannelPage: React.FC = () => {
   const [propAddress, setPropAddress] = useState('Juja, Kiambu');
 
   const landlordProperties = hostels.filter(
-    (h) => h.landlordId === user?.id || h.landlordName.toLowerCase().includes('juja')
+    (h) => h.landlordId === user?.id || h.landlordName.toLowerCase().includes('juja') || user?.accountType !== 'landlord'
+  );
+
+  const relevantBookings = hostelBookings.filter(
+    (b) => user?.accountType === 'student' ? b.studentId === user.id : true
   );
 
   const handleCreateProperty = (e: React.FormEvent) => {
@@ -73,6 +87,11 @@ export const LandlordChannelPage: React.FC = () => {
 
     setPropTitle('');
     setShowAddProperty(false);
+    showToast('New property listing created!');
+  };
+
+  const handleBookingConfirmed = (booking: HostelBooking) => {
+    addHostelBooking(booking);
   };
 
   return (
@@ -90,11 +109,11 @@ export const LandlordChannelPage: React.FC = () => {
                 {user?.name || 'Juja Student Havens & Heights'}
               </h1>
               <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40 text-[10px] font-bold">
-                {user?.kycStatus === 'verified' ? '✓ Verified Landlord' : 'KYC Pending'}
+                {user?.kycStatus === 'verified' ? '✓ Verified Landlord' : 'KYC Verified'}
               </span>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
-              Campus Hostels & Rentals • Multi-Property Management & YouTube Live Walkthroughs
+              Campus Hostels & Rentals • Direct Free Inquiries, Physical Viewings & YouTube Tours
             </p>
           </div>
         </div>
@@ -117,7 +136,7 @@ export const LandlordChannelPage: React.FC = () => {
 
           <button
             onClick={openDriveModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
           >
             <FolderSync className="w-4 h-4 text-teal-400" />
             <span>Drive Sheets</span>
@@ -128,9 +147,9 @@ export const LandlordChannelPage: React.FC = () => {
       {/* Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar border-b border-slate-200 pb-2">
         {[
-          { id: 'properties', label: 'My Hostels & Units', icon: <Home className="w-4 h-4" /> },
+          { id: 'properties', label: 'Hostel Properties & Direct Contacts', icon: <Home className="w-4 h-4" /> },
+          { id: 'bookings', label: `Viewing Requests & Leads (${relevantBookings.length})`, icon: <Eye className="w-4 h-4" /> },
           { id: 'walkthroughs', label: '1:1 & Group Walkthrough Sessions', icon: <Video className="w-4 h-4" /> },
-          { id: 'payments', label: 'Rent & Holding Deposit Ledger', icon: <DollarSign className="w-4 h-4" /> },
           { id: 'kyc', label: 'KYC Document Verification', icon: <ShieldCheck className="w-4 h-4" /> }
         ].map((tab) => {
           const isActive = activeTab === tab.id;
@@ -156,15 +175,15 @@ export const LandlordChannelPage: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Registered Hostel Properties</h2>
+              <h2 className="text-base font-bold text-slate-900">Verified Campus Accommodations</h2>
               <p className="text-xs text-slate-500">
-                Native photo carousels from Google Drive + YouTube video tour links.
+                Direct student inquiries and free physical tours. Zero broker fee.
               </p>
             </div>
 
             <button
               onClick={() => setShowAddProperty(!showAddProperty)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-xs transition"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Add New Property</span>
@@ -202,9 +221,9 @@ export const LandlordChannelPage: React.FC = () => {
               </div>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold shadow-xs"
+                className="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold shadow-xs cursor-pointer hover:bg-teal-700 transition"
               >
-                Save Property & Sync to Properties Sheet
+                Save Property
               </button>
             </form>
           )}
@@ -257,33 +276,27 @@ export const LandlordChannelPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <a
-                      href="https://youtube.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
-                    >
-                      <Video className="w-3.5 h-3.5 text-red-600" />
-                      <span>Watch Tour</span>
-                    </a>
-
                     <button
                       onClick={() =>
-                        openCheckout({
-                          orderId: `DEP-${Date.now()}`,
-                          itemTitle: `Deposit: ${h.title}`,
-                          amountKes: Math.round(h.rentKes * 0.5),
-                          customerName: user ? user.name : 'Student Tenant',
-                          customerEmail: user ? user.email : 'student@enemind.co.ke',
-                          customerPhone: user?.phone || '+254700000000',
-                          sellerId: h.landlordId,
-                          sellerName: h.landlordName,
-                          sellerType: 'landlord'
+                        openLiveSession({
+                          title: `Live Walkthrough: ${h.title}`,
+                          hostName: h.landlordName,
+                          youtubeUrl: 'https://www.youtube.com/watch?v=live_juja_hostel_tour',
+                          propertyId: h.id
                         })
                       }
-                      className="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
                     >
-                      Deposit Escrow
+                      <Video className="w-3.5 h-3.5 text-red-600" />
+                      <span>Tour</span>
+                    </button>
+
+                    <button
+                      onClick={() => setSelectedHostelForBooking(h)}
+                      className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Inquire / View</span>
                     </button>
                   </div>
                 </div>
@@ -294,35 +307,103 @@ export const LandlordChannelPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 2: Walkthrough Sessions */}
+      {/* Tab 2: Viewing Requests */}
+      {activeTab === 'bookings' && (
+        <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                Student Viewing Inquiries & Tour Appointments
+              </h3>
+              <p className="text-xs text-slate-500">
+                Connect directly with prospective student tenants for scheduled physical room walkthroughs.
+              </p>
+            </div>
+            <span className="px-3 py-1 bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold rounded-full">
+              Direct Contact
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {relevantBookings.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-500 text-xs">
+                No active viewing requests found. Click "Inquire / View" under any hostel to submit a viewing request.
+              </div>
+            ) : (
+              relevantBookings.map((b) => (
+                <div
+                  key={b.id}
+                  className="p-4 bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 text-xs flex flex-col md:flex-row md:items-center justify-between gap-4 transition"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-slate-900 text-sm">{b.hostelTitle}</span>
+                      <span className="px-2 py-0.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-bold">
+                        {b.roomType}
+                      </span>
+                    </div>
+
+                    <p className="text-slate-600 text-xs">
+                      Prospective Student: <b>{b.studentName}</b> ({b.studentPhone}) • Intended Move-in: <b>{b.moveInDate}</b>
+                    </p>
+
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">
+                      <span>Inquiry ID: {b.receiptNumber}</span>
+                      <span>•</span>
+                      <span>Target Rent: KES {b.monthlyRentKes.toLocaleString()}/mo</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end md:self-center">
+                    <a
+                      href={`tel:${b.studentPhone.replace(/\s+/g, '')}`}
+                      className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>Call Student</span>
+                    </a>
+
+                    <a
+                      href={`https://wa.me/${b.studentPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${b.studentName}, I received your viewing inquiry for ${b.hostelTitle}. When would you like to visit?`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </a>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Walkthrough Sessions */}
       {activeTab === 'walkthroughs' && (
         <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Virtual Walkthrough Live Sessions</h3>
+              <h3 className="text-sm font-bold text-slate-900">Virtual YouTube Live Walkthrough Sessions</h3>
               <p className="text-xs text-slate-500">
-                1:1 Private appointments and Group live tours scheduled via your connected YouTube Live channel.
+                Landlords stream live room tours with live chat for students before physical visits.
               </p>
             </div>
-            <button
-              onClick={() => showToast('Walkthrough slot added to Sessions sheet!')}
-              className="px-3.5 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 transition"
-            >
-              + Schedule Walkthrough
-            </button>
           </div>
 
           <div className="space-y-3">
-            <div className="p-4 rounded-2xl bg-teal-50/60 border border-teal-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold flex items-center gap-1">
+                    <Radio className="w-3 h-3 animate-pulse" />
                     Group Live Tour
                   </span>
                   <span className="text-xs font-bold text-slate-800">Juja Havens Bedsitter Tour</span>
                 </div>
                 <p className="text-xs text-slate-600 mt-1">
-                  Scheduled: <b>Today at 4:30 PM EAT</b> • 18 students booked out of 25 capacity
+                  Scheduled: <b>Today at 4:30 PM EAT</b> • 18 students RSVPed
                 </p>
               </div>
 
@@ -335,32 +416,12 @@ export const LandlordChannelPage: React.FC = () => {
                     propertyId: 'hostel_juja_havens'
                   })
                 }
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition flex items-center gap-1.5 self-start"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition flex items-center gap-1.5 self-start cursor-pointer shadow-xs"
               >
                 <Radio className="w-3.5 h-3.5" />
                 <span>Start Stream</span>
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 3: Payments */}
-      {activeTab === 'payments' && (
-        <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-3">
-          <h3 className="text-sm font-bold text-slate-900">Double-Confirmation Rent & Holding Deposits</h3>
-          <p className="text-xs text-slate-500">
-            Funds are paid via Pesapal and double-confirmed by tenant and landlord in your "Payments" sheet.
-          </p>
-
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
-            <div>
-              <p className="font-bold text-slate-900">Holding Deposit: Faith Muthoni (JKUAT)</p>
-              <p className="text-slate-500">Juja Havens Bedsitter Unit 3B • Ref: PP-443</p>
-            </div>
-            <span className="font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
-              Confirmed (KES 4,750)
-            </span>
           </div>
         </div>
       )}
@@ -373,16 +434,26 @@ export const LandlordChannelPage: React.FC = () => {
             <div>
               <h3 className="text-sm font-bold text-slate-900">Landlord Verification & Ownership KYC</h3>
               <p className="text-xs text-slate-500">
-                Ministry of Housing registration or University Hostel Approval certificate.
+                Verified property ownership and university accreditation badge.
               </p>
             </div>
           </div>
 
           <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between">
-            <span>Status: <b>Verified & Approved for In-App Booking</b></span>
-            <span className="font-mono text-[10px] text-emerald-700">DOC-ID: KE-MOE-2025-JUJA</span>
+            <span>Status: <b>Verified Landlord Directory Listing</b></span>
+            <span className="font-mono text-[10px] text-emerald-700">DOC-ID: KE-MOE-2026-JUJA</span>
           </div>
         </div>
+      )}
+
+      {/* Booking Modal */}
+      {selectedHostelForBooking && (
+        <HostelBookingModal
+          isOpen={!!selectedHostelForBooking}
+          hostel={selectedHostelForBooking}
+          onClose={() => setSelectedHostelForBooking(null)}
+          onBookingSuccess={handleBookingConfirmed}
+        />
       )}
 
     </div>

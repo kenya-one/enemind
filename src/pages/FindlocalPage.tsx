@@ -30,9 +30,11 @@ import { useAuth } from '../context/AuthContext';
 import { FindlocalTour, TourStop, TOUR_STOPS } from '../components/FindlocalTour';
 import { KENYAN_CAMPUSES_AND_COLLEGES, KenyanInstitution } from '../services/campusesKenya';
 import { CampusInteractiveMap } from '../components/CampusInteractiveMap';
+import { HostelBookingModal } from '../components/HostelBookingModal';
+import { HostelProperty, HostelBooking } from '../types';
 
 export const FindlocalPage: React.FC = () => {
-  const { products, jobs, hostels, openCheckout, showToast } = useApp();
+  const { products, jobs, hostels, addHostelBooking, openCheckout, showToast } = useApp();
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'campuses' | 'radar'>('campuses');
@@ -45,6 +47,7 @@ export const FindlocalPage: React.FC = () => {
   const [maxDistanceKm, setMaxDistanceKm] = useState<number>(25);
   const [isTourOpen, setIsTourOpen] = useState<boolean>(false);
   const [selectedTourStop, setSelectedTourStop] = useState<TourStop | null>(null);
+  const [selectedHostelForBooking, setSelectedHostelForBooking] = useState<HostelProperty | null>(null);
 
   const categories = [
     'All',
@@ -657,6 +660,19 @@ export const FindlocalPage: React.FC = () => {
                           </span>
 
                           <div className="flex items-center gap-2">
+                            {item.type === 'hostel' && (
+                              <button
+                                onClick={() => {
+                                  const matchingHostel = hostels.find(
+                                    (h) => h.id === 'hostel_juja_havens' || h.title.includes('Juja')
+                                  ) || hostels[0];
+                                  setSelectedHostelForBooking(matchingHostel);
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1 cursor-pointer"
+                              >
+                                <Home className="w-3 h-3" /> Inquire / View
+                              </button>
+                            )}
                             <a
                               href={`tel:${item.phone.replace(/\s+/g, '')}`}
                               className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition"
@@ -699,6 +715,18 @@ export const FindlocalPage: React.FC = () => {
           onClose={() => {
             setIsTourOpen(false);
             setSelectedTourStop(null);
+          }}
+        />
+      )}
+
+      {/* Hostel Booking Modal */}
+      {selectedHostelForBooking && (
+        <HostelBookingModal
+          isOpen={!!selectedHostelForBooking}
+          hostel={selectedHostelForBooking}
+          onClose={() => setSelectedHostelForBooking(null)}
+          onBookingSuccess={(booking) => {
+            addHostelBooking(booking);
           }}
         />
       )}

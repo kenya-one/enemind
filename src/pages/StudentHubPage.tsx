@@ -14,11 +14,15 @@ import {
   FileText,
   Star,
   Download,
-  FolderSync
+  FolderSync,
+  Package,
+  FileSpreadsheet
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { StudentStage } from '../types';
+import { PastPapersRevisionHub } from '../components/PastPapersRevisionHub';
+import { CampusClassifiedsHub } from '../components/CampusClassifiedsHub';
 
 export const StudentHubPage: React.FC = () => {
   const { user, updateProfile } = useAuth();
@@ -38,7 +42,7 @@ export const StudentHubPage: React.FC = () => {
 
   const stage: StudentStage = user?.studentStage || 'campus';
 
-  const [activeSubTab, setActiveSubTab] = useState<'notes' | 'quizzes' | 'groups' | 'mentors' | 'efootball' | 'earnings'>('notes');
+  const [activeSubTab, setActiveSubTab] = useState<'pastpapers' | 'classifieds' | 'notes' | 'quizzes' | 'groups' | 'mentors' | 'efootball' | 'earnings'>('pastpapers');
   const [activeQuizIndex, setActiveQuizIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [showQuizResult, setShowQuizResult] = useState(false);
@@ -142,13 +146,35 @@ export const StudentHubPage: React.FC = () => {
       {/* Stage-Gated Feature Navigation Bar */}
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar border-b border-slate-200 pb-2">
         <button
+          onClick={() => setActiveSubTab('pastpapers')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+            activeSubTab === 'pastpapers' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>Past Papers & Revision Hub</span>
+        </button>
+
+        {stage === 'campus' && (
+          <button
+            onClick={() => setActiveSubTab('classifieds')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+              activeSubTab === 'classifieds' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <Package className="w-4 h-4 text-emerald-400" />
+            <span>Campus Gear Classifieds (P2P)</span>
+          </button>
+        )}
+
+        <button
           onClick={() => setActiveSubTab('notes')}
           className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
             activeSubTab === 'notes' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
           }`}
         >
-          <BookOpen className="w-4 h-4" />
-          <span>{stage === 'campus' || stage === 'high_school' ? 'Notes & Pastpapers' : 'Curated Study Materials'}</span>
+          <FileText className="w-4 h-4" />
+          <span>{stage === 'campus' ? 'Student Notes Exchange' : 'Curated Study Materials'}</span>
         </button>
 
         <button
@@ -226,7 +252,17 @@ export const StudentHubPage: React.FC = () => {
 
       {/* Content Area */}
 
-      {/* 1. Notes & Pastpapers Marketplace */}
+      {/* 0. Past Papers & Revision Hub */}
+      {activeSubTab === 'pastpapers' && (
+        <PastPapersRevisionHub />
+      )}
+
+      {/* 0.1 Campus Gear Classifieds */}
+      {activeSubTab === 'classifieds' && (
+        <CampusClassifiedsHub />
+      )}
+
+      {/* 1. Notes & Study Materials */}
       {activeSubTab === 'notes' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">

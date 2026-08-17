@@ -53,10 +53,12 @@ export interface ProductItem {
   sellerName: string;
   sellerType: 'dealer' | 'company';
   sellerTier: PlanTier;
+  contactPhone?: string;
   title: string;
-  category: 'Solar & Energy' | 'Electronics' | 'Building Materials' | 'Farm Produce' | 'Fashion' | 'Services' | 'Automotive';
+  category: 'Solar & Energy' | 'Electronics' | 'Building Materials' | 'Farm Produce' | 'Fashion' | 'Services' | 'Automotive' | 'Solar & Clean Energy' | 'Hardware & Construction' | 'Student Essentials' | 'Laptops & Electronics' | 'Services & Labor';
   description: string;
   priceKes: number;
+  basePriceKes?: number;
   images: string[];
   youtubeVideoId?: string;
   location: string;
@@ -69,8 +71,8 @@ export interface ProductItem {
   rating: number;
   reviewsCount: number;
   // Building materials specific
-  unitType?: 'piece' | 'bag (50kg)' | 'ton' | 'truckload' | 'meter' | 'bundle';
-  bulkPricing?: { minUnits: number; discountedPriceKes: number }[];
+  unitType?: 'piece' | 'bag (50kg)' | 'ton' | 'truckload' | 'meter' | 'bundle' | string;
+  bulkPricing?: { minUnits?: number; minQty?: number; discountedPriceKes?: number; unitPriceKes?: number }[];
   deliveryAvailable?: boolean;
   deliveryFeePerKmKes?: number;
 }
@@ -96,6 +98,30 @@ export interface HostelProperty {
   vacantUnits: number;
   totalUnits: number;
   walkthroughSessions: WalkthroughSession[];
+}
+
+export interface HostelBooking {
+  id: string;
+  hostelId: string;
+  hostelTitle: string;
+  landlordId: string;
+  landlordName: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  studentPhone: string;
+  campusName: string;
+  roomType: string;
+  unitNumber?: string;
+  moveInDate: string;
+  durationMonths: number;
+  monthlyRentKes: number;
+  holdingDepositKes: number;
+  totalPaidKes: number;
+  status: 'pending_deposit' | 'confirmed_reserved' | 'checked_in' | 'cancelled';
+  pesapalTrackingId?: string;
+  receiptNumber: string;
+  createdAt: string;
 }
 
 export interface WalkthroughSession {
@@ -290,3 +316,43 @@ export interface LeadSubmission {
   submittedAt: string;
   status: 'New' | 'In Contact' | 'Proposal Sent' | 'Converted';
 }
+
+export interface PastPaperItem {
+  id: string;
+  title: string;
+  level: 'CBC Junior School (Grade 7-9)' | 'KCSE (Form 1-4)' | 'University Units' | 'TVET / Diploma';
+  curriculumBody: 'KNEC' | 'KICD' | 'University Exam Board' | 'TVET CDACC';
+  subject: string;
+  year: number;
+  termOrSemester?: string;
+  hasMarkingScheme: boolean;
+  institutionOrSchool?: string;
+  downloadUrl: string;
+  previewQuestions: {
+    questionNumber: string;
+    text: string;
+    marks: number;
+    answerKey?: string;
+  }[];
+  tags: string[];
+  downloadsCount: number;
+}
+
+export interface StudentClassifiedItem {
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  sellerPhone: string;
+  sellerUniversity: string;
+  campusGate: string;
+  title: string;
+  category: 'Furniture & Beds' | 'Cooking & Gas' | 'Laptops & Tech' | 'Textbooks & Calculators' | 'Hostel Appliances' | 'Stationery & Study Gear';
+  condition: 'Like New' | 'Gently Used' | 'Good Condition' | 'Well Used';
+  priceKes: number;
+  isNegotiable: boolean;
+  images: string[];
+  description: string;
+  postedDate: string;
+  status: 'available' | 'reserved' | 'sold';
+}
+

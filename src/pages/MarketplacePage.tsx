@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import {
-  ShoppingBag,
   Search,
-  Filter,
-  Truck,
-  Star,
+  SlidersHorizontal,
+  Package,
   Layers,
-  ChevronDown,
-  ExternalLink,
-  CheckCircle,
+  Sparkles,
+  Zap,
+  TrendingDown,
+  Building2,
   Calculator,
+  MessageCircle,
+  Phone,
   ShieldCheck
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -17,84 +18,101 @@ import { useAuth } from '../context/AuthContext';
 import { ProductItem } from '../types';
 
 export const MarketplacePage: React.FC = () => {
-  const { products, searchQuery, setSearchQuery, selectedCategory, setSelectedCategory, openCheckout, showToast } = useApp();
+  const { products, showToast } = useApp();
   const { user } = useAuth();
 
-  const [sortBy, setSortBy] = useState<'recommended' | 'price_low' | 'price_high'>('recommended');
-  const [bulkQuantity, setBulkQuantity] = useState<Record<string, number>>({
-    prod_bamburi_cement: 100
-  });
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'featured' | 'price_low' | 'price_high'>('featured');
+  const [bulkQuantity, setBulkQuantity] = useState<{ [id: string]: number }>({});
 
   const categories = [
     'All',
-    'Solar & Energy',
-    'Building Materials',
-    'Farm Produce',
-    'Electronics',
-    'Services'
+    'Solar & Clean Energy',
+    'Hardware & Construction',
+    'Student Essentials',
+    'Laptops & Electronics',
+    'Services & Labor'
   ];
 
-  const filteredProducts = products
-    .filter((p) => {
-      const matchCat = selectedCategory === 'All' || p.category === selectedCategory;
-      const matchQuery =
-        !searchQuery ||
-        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.location.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchCat && matchQuery;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'price_low') return a.priceKes - b.priceKes;
-      if (sortBy === 'price_high') return b.priceKes - a.priceKes;
-      return 0;
-    });
+  const handleWhatsAppOrder = (prod: ProductItem, qty: number, price: number) => {
+    const sellerPhone = prod.contactPhone?.replace(/\s+/g, '') || '+254712345678';
+    const text = encodeURIComponent(
+      `Hello ${prod.sellerName}, I found your listing "${prod.title}" on Enemind. I am interested in buying ${qty} ${prod.unitType || 'unit(s)'} for KES ${price.toLocaleString()}. Is this item available in ${prod.location}?`
+    );
+    window.open(`https://wa.me/${sellerPhone.replace('+', '')}?text=${text}`, '_blank');
+    showToast(`Connecting directly to ${prod.sellerName} on WhatsApp...`);
+  };
 
-  const getEffectivePrice = (prod: ProductItem, qty: number) => {
-    if (!prod.bulkPricing || prod.bulkPricing.length === 0) return prod.priceKes * qty;
-    // Find highest threshold that qualifies
-    const qualified = [...prod.bulkPricing]
-      .sort((a, b) => b.minUnits - a.minUnits)
-      .find((b) => qty >= b.minUnits);
+  const handleDirectCall = (prod: ProductItem) => {
+    const sellerPhone = prod.contactPhone?.replace(/\s+/g, '') || '+254712345678';
+    window.location.href = `tel:${sellerPhone}`;
+  };
 
-    const unitPrice = qualified ? qualified.discountedPriceKes : prod.priceKes;
+  const filteredProducts = products.filter((prod) => {
+    const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
+    const matchesSearch =
+      prod.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prod.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prod.sellerName.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const getEffectivePrice = (prod: ProductItem, qty: number): number => {
+    const base = prod.priceKes || prod.basePriceKes || 0;
+    if (!prod.bulkPricing || prod.bulkPricing.length === 0) {
+      return base * qty;
+    }
+    const matchedTier = [...prod.bulkPricing]
+      .sort((a, b) => (b.minUnits || b.minQty || 0) - (a.minUnits || a.minQty || 0))
+      .find((t) => qty >= (t.minUnits || t.minQty || 0));
+    
+    const unitPrice = matchedTier ? (matchedTier.discountedPriceKes || matchedTier.unitPriceKes || base) : base;
     return unitPrice * qty;
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       
-      {/* Top Header & Search Bar */}
+      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 font-display">
-            Enemind Marketplace
+          <h1 className="text-2xl font-bold font-display text-slate-900">
+            Direct Merchant & Student Marketplace
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Certified solar systems, building materials with bulk rates, farm produce, and local services.
+            Connect directly with verified hardware stores, solar engineers, and student sellers in Kenya. Zero platform commission or intermediary fund holding.
           </p>
         </div>
 
-        {/* Search & Sort Controls */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products..."
-              className="pl-9 pr-4 py-2 text-xs bg-white rounded-xl border border-slate-200 focus:border-blue-500 outline-none w-52"
-            />
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Direct-to-Seller Connection • Zero Custody</span>
           </div>
+        </div>
+      </div>
 
+      {/* Filter and Search Bar */}
+      <div className="p-4 bg-white rounded-3xl border border-slate-200/90 shadow-xs flex flex-col md:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search solar panels, cement, laptops, study desks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-2 text-xs bg-white rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
+            className="px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-medium outline-none cursor-pointer"
           >
-            <option value="recommended">Sort: Recommended</option>
+            <option value="featured">Featured First</option>
             <option value="price_low">Price: Low to High</option>
             <option value="price_high">Price: High to Low</option>
           </select>
@@ -165,7 +183,7 @@ export const MarketplacePage: React.FC = () => {
                       <div className="flex items-center justify-between text-xs font-bold text-amber-900">
                         <span className="flex items-center gap-1">
                           <Calculator className="w-3.5 h-3.5 text-amber-600" />
-                          Bulk Quantity Calculator
+                          Bulk Calculator
                         </span>
                         <span className="text-[10px] bg-amber-200/70 px-1.5 py-0.5 rounded">
                           Tier Rates Available
@@ -194,33 +212,32 @@ export const MarketplacePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Bottom Card Footer */}
+              {/* Bottom Card Footer with Direct WhatsApp & Call */}
               <div className="p-5 pt-0 flex items-center justify-between border-t border-slate-100 mt-2">
                 <div>
-                  <p className="text-[10px] text-slate-400 font-medium">Total Price</p>
+                  <p className="text-[10px] text-slate-400 font-medium">Direct Price</p>
                   <p className="text-base font-extrabold text-blue-600">
                     KES {totalPrice.toLocaleString()}
                   </p>
                 </div>
 
-                <button
-                  onClick={() =>
-                    openCheckout({
-                      orderId: `ORD-${Date.now()}`,
-                      itemTitle: `${prod.title} (Qty: ${currentQty})`,
-                      amountKes: totalPrice,
-                      customerName: user ? user.name : 'Customer',
-                      customerEmail: user ? user.email : 'customer@enemind.co.ke',
-                      customerPhone: user?.phone || '+254700000000',
-                      sellerId: prod.sellerId,
-                      sellerName: prod.sellerName,
-                      sellerType: prod.sellerType
-                    })
-                  }
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
-                >
-                  Order via Pesapal
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleDirectCall(prod)}
+                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
+                    title="Call Merchant Directly"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => handleWhatsAppOrder(prod, currentQty, totalPrice)}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>WhatsApp Seller</span>
+                  </button>
+                </div>
               </div>
 
             </div>

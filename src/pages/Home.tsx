@@ -179,12 +179,16 @@ export const Home: React.FC = () => {
             <span>Take Best Findlocals Tour</span>
           </button>
           <span className="font-semibold text-slate-400">Popular:</span>
-          {['SunKing Solar', 'Bamburi 50kg Cement', 'Juja Hostels', 'KCSE Past Papers', 'Mama Mboga'].map((tag) => (
+          {['Past Paper Hub', 'Campus Gear (P2P)', 'SunKing Solar', 'Bamburi 50kg Cement', 'Juja Hostels', 'Mama Mboga'].map((tag) => (
             <button
               key={tag}
               onClick={() => {
-                setSearchQuery(tag);
-                setActivePage('marketplace');
+                if (tag === 'Past Paper Hub' || tag === 'Campus Gear (P2P)') {
+                  setActivePage('students');
+                } else {
+                  setSearchQuery(tag);
+                  setActivePage('marketplace');
+                }
               }}
               className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer font-medium"
             >

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   ProductItem,
   HostelProperty,
+  HostelBooking,
   JobPosting,
   StudyMaterial,
   StudentQuiz,
@@ -11,7 +12,9 @@ import {
   MentorProfile,
   EFootballTournament,
   OrderRecord,
-  WalkthroughSession
+  WalkthroughSession,
+  PastPaperItem,
+  StudentClassifiedItem
 } from '../types';
 import {
   INITIAL_PRODUCTS,
@@ -26,6 +29,8 @@ import {
   INITIAL_EFOOTBALL_TOURNAMENT,
   INITIAL_ORDERS
 } from '../services/mockData';
+import { INITIAL_HOSTEL_BOOKINGS } from '../services/hostelBookingsData';
+import { INITIAL_PAST_PAPERS, INITIAL_STUDENT_CLASSIFIEDS } from '../services/pastPapersData';
 import { PesapalPaymentIntent } from '../services/pesapalService';
 
 export type ActivePage =
@@ -72,6 +77,14 @@ interface AppContextType {
   joinTournament: (playerUsername: string) => void;
   orders: OrderRecord[];
   addOrder: (order: OrderRecord) => void;
+  hostelBookings: HostelBooking[];
+  addHostelBooking: (booking: HostelBooking) => void;
+  updateBookingStatus: (bookingId: string, status: HostelBooking['status']) => void;
+  pastPapers: PastPaperItem[];
+  addPastPaper: (paper: Omit<PastPaperItem, 'id' | 'downloadsCount'>) => void;
+  studentClassifieds: StudentClassifiedItem[];
+  addStudentClassified: (item: Omit<StudentClassifiedItem, 'id' | 'postedDate' | 'status'>) => void;
+  updateClassifiedStatus: (itemId: string, status: StudentClassifiedItem['status']) => void;
   
   // Modals & Interactivity
   activeLiveSession: {
@@ -133,6 +146,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [mentors] = useState<MentorProfile[]>(INITIAL_MENTORS);
   const [tournament, setTournament] = useState<EFootballTournament>(INITIAL_EFOOTBALL_TOURNAMENT);
   const [orders, setOrders] = useState<OrderRecord[]>(INITIAL_ORDERS);
+  const [hostelBookings, setHostelBookings] = useState<HostelBooking[]>(INITIAL_HOSTEL_BOOKINGS);
+  const [pastPapers, setPastPapers] = useState<PastPaperItem[]>(INITIAL_PAST_PAPERS);
+  const [studentClassifieds, setStudentClassifieds] = useState<StudentClassifiedItem[]>(INITIAL_STUDENT_CLASSIFIEDS);
+
+  const addPastPaper = (paper: Omit<PastPaperItem, 'id' | 'downloadsCount'>) => {
+    const newPaper: PastPaperItem = {
+      ...paper,
+      id: `pp_${Date.now()}`,
+      downloadsCount: 1
+    };
+    setPastPapers((prev) => [newPaper, ...prev]);
+  };
+
+  const addStudentClassified = (item: Omit<StudentClassifiedItem, 'id' | 'postedDate' | 'status'>) => {
+    const newItem: StudentClassifiedItem = {
+      ...item,
+      id: `sc_${Date.now()}`,
+      postedDate: new Date().toISOString().split('T')[0],
+      status: 'available'
+    };
+    setStudentClassifieds((prev) => [newItem, ...prev]);
+  };
+
+  const updateClassifiedStatus = (itemId: string, status: StudentClassifiedItem['status']) => {
+    setStudentClassifieds((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, status } : i))
+    );
+  };
+
+  const addHostelBooking = (booking: HostelBooking) => {
+    setHostelBookings((prev) => [booking, ...prev]);
+    // Also decrease vacantUnits in corresponding hostel
+    setHostels((prevHostels) =>
+      prevHostels.map((h) =>
+        h.id === booking.hostelId
+          ? { ...h, vacantUnits: Math.max(0, h.vacantUnits - 1) }
+          : h
+      )
+    );
+  };
+
+  const updateBookingStatus = (bookingId: string, status: HostelBooking['status']) => {
+    setHostelBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, status } : b))
+    );
+  };
   
   const [favorites, setFavorites] = useState<string[]>([]);
   const [activeLiveSession, setActiveLiveSession] = useState<{
@@ -338,6 +397,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         joinTournament,
         orders,
         addOrder,
+        hostelBookings,
+        addHostelBooking,
+        updateBookingStatus,
+        pastPapers,
+        addPastPaper,
+        studentClassifieds,
+        addStudentClassified,
+        updateClassifiedStatus,
         activeLiveSession,
         openLiveSession: (s) => setActiveLiveSession(s),
         closeLiveSession: () => setActiveLiveSession(null),
