@@ -100,6 +100,12 @@ interface AppContextType {
   openDriveModal: () => void;
   closeDriveModal: () => void;
 
+  // Auth Modal State
+  isAuthModalOpen: boolean;
+  authModalMode: 'login' | 'signup';
+  openAuthModal: (mode?: 'login' | 'signup') => void;
+  closeAuthModal: () => void;
+
   // Favorites
   favorites: string[];
   toggleFavorite: (id: string) => void;
@@ -140,7 +146,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [checkoutIntent, setCheckoutIntent] = useState<PesapalPaymentIntent | null>(null);
   const [isDriveModalOpen, setIsDriveModalOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const openAuthModal = (mode: 'login' | 'signup' = 'login') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -330,6 +347,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isDriveModalOpen,
         openDriveModal: () => setIsDriveModalOpen(true),
         closeDriveModal: () => setIsDriveModalOpen(false),
+        isAuthModalOpen,
+        authModalMode,
+        openAuthModal,
+        closeAuthModal,
         favorites,
         toggleFavorite,
         toastMessage,

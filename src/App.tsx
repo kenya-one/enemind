@@ -7,6 +7,7 @@ import { BottomNav } from './components/BottomNav';
 import { YouTubeLiveModal } from './components/YouTubeLiveModal';
 import { PesapalModal } from './components/PesapalModal';
 import { DriveSyncModal } from './components/DriveSyncModal';
+import { AuthModal } from './components/AuthModal';
 
 import { Home } from './pages/Home';
 import { ShortsFeedPage } from './pages/ShortsFeedPage';
@@ -18,7 +19,7 @@ import { LandlordChannelPage } from './pages/LandlordChannelPage';
 import { StudentHubPage } from './pages/StudentHubPage';
 
 const AppContent: React.FC = () => {
-  const { toastMessage } = useApp();
+  const { toastMessage, isAuthModalOpen, authModalMode, closeAuthModal } = useApp();
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col antialiased selection:bg-blue-500 selection:text-white">
@@ -57,6 +58,11 @@ const AppContent: React.FC = () => {
       <YouTubeLiveModal />
       <PesapalModal />
       <DriveSyncModal />
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        defaultMode={authModalMode}
+        onClose={closeAuthModal}
+      />
     </div>
   );
 };

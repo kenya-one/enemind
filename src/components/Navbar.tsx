@@ -22,7 +22,7 @@ import { useApp, ActivePage } from '../context/AppContext';
 
 export const Navbar: React.FC = () => {
   const { user, allUsers, switchUser, loginWithGoogle, logout, isFinanceOfficerMode, setFinanceOfficerMode } = useAuth();
-  const { activePage, setActivePage, searchQuery, setSearchQuery, openDriveModal, openLiveSession, products } = useApp();
+  const { activePage, setActivePage, searchQuery, setSearchQuery, openDriveModal, openAuthModal, openLiveSession, products } = useApp();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
 
@@ -181,15 +181,24 @@ export const Navbar: React.FC = () => {
                       );
                     })}
                   </div>
-                  <div className="p-2 border-t border-slate-100 bg-slate-50/50">
+                  <div className="p-2 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-1.5">
                     <button
                       onClick={() => {
-                        loginWithGoogle('student', { studentStage: 'campus', name: 'New Student' });
                         setShowRoleSwitcher(false);
+                        openAuthModal('signup');
                       }}
-                      className="w-full py-1.5 px-2 text-center text-xs font-medium text-blue-600 hover:text-blue-700 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition"
+                      className="w-full py-2 px-2 text-center text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition"
                     >
-                      + Create New Account (Google OAuth)
+                      + Create New Account (Sign Up)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowRoleSwitcher(false);
+                        openAuthModal('login');
+                      }}
+                      className="w-full py-1.5 px-2 text-center text-xs font-medium text-slate-600 hover:text-slate-900 bg-white rounded-xl border border-slate-200 transition"
+                    >
+                      Sign In with Email / M-Pesa
                     </button>
                   </div>
                 </div>
@@ -275,7 +284,16 @@ export const Navbar: React.FC = () => {
                       </button>
                     </div>
 
-                    <div className="p-2 border-t border-slate-100">
+                    <div className="p-2 border-t border-slate-100 flex flex-col gap-1">
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          openAuthModal('signup');
+                        }}
+                        className="w-full py-1.5 px-3 text-left text-xs text-emerald-700 hover:bg-emerald-50 rounded-lg transition font-medium"
+                      >
+                        + Switch or Create New Account
+                      </button>
                       <button
                         onClick={() => {
                           logout();
@@ -290,13 +308,22 @@ export const Navbar: React.FC = () => {
                 )}
               </div>
             ) : (
-              <button
-                id="google-signin-btn"
-                onClick={() => loginWithGoogle('student')}
-                className="px-4 py-2 rounded-full bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 shadow-sm transition"
-              >
-                Sign In with Google
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  id="navbar-login-btn"
+                  onClick={() => openAuthModal('login')}
+                  className="px-3.5 py-1.5 rounded-full text-slate-700 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer"
+                >
+                  Sign In
+                </button>
+                <button
+                  id="navbar-signup-btn"
+                  onClick={() => openAuthModal('signup')}
+                  className="px-4 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm transition cursor-pointer"
+                >
+                  Join Free
+                </button>
+              </div>
             )}
 
           </div>
