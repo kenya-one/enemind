@@ -1,8 +1,6 @@
 {
-  "name": "Remix Remix Remix Kenya House Hunt",
-  "description": "TikTok-style video and photo reel feed for rental hunting across Kenya with Kenya General Mode and Campus Student Housing Mode, certified property documents, landlord profiles, walking distance indicators, and WhatsApp scheduling.",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "name": "Enemind",
+  "description": "Kenyan-focused PWA marketplace, discovery engine, and multi-sided platform for Schools, Companies, Dealers, Landlords, and Students.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,35 +1,68 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --enemind-primary: #2563eb;
+    --enemind-secondary: #f59e0b;
+    --enemind-emerald: #059669;
+    --enemind-dark: #0f172a;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #0a0a0a;
-    color: #f3f4f6;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
+    color: #0f172a;
+    background-color: #f8fafc;
+    -webkit-font-smoothing: antialiased;
   }
-
-  .font-serif {
-    font-family: 'Cormorant Garamond', Garamond, Georgia, serif;
-  }
-
-  .font-display {
-    font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+  
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.02em;
   }
 }
 
-/* Custom Luxury Scrollbars & Animations */
+/* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #262626;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #FFD700;
+  background: #94a3b8;
 }
+
+/* Glass & PWA effects */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes scan-radar {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-radar-sweep {
+  animation: scan-radar 5s linear infinite;
+  transform-origin: center;
+}
+
