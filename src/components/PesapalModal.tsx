@@ -96,7 +96,12 @@ export const PesapalModal: React.FC = () => {
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900">Pesapal Secure Checkout</h3>
-              <p className="text-[11px] text-slate-500">M-Pesa & Card Gateway (Kenya)</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <p className="text-[10px] font-semibold text-slate-600">
+                  Pesapal V3 Gateway Active • STK Push & Card
+                </p>
+              </div>
             </div>
           </div>
           <button
