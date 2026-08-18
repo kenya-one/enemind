@@ -1,153 +1,285 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserProfile, AccountType } from '../types';
-import { INITIAL_USERS } from '../services/mockData';
-import { DriveSheetsService } from '../services/driveSheetsService';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { AuthState, UserProfile, UserRole } from '../types/index.js';
+import { api } from '../services/api.js';
 
 interface AuthContextType {
   user: UserProfile | null;
-  allUsers: UserProfile[];
-  loginWithGoogle: (accountType: AccountType, customData?: Partial<UserProfile>) => void;
-  switchUser: (userId: string) => void;
-  logout: () => void;
-  updateProfile: (data: Partial<UserProfile>) => void;
-  isFinanceOfficerMode: boolean;
-  setFinanceOfficerMode: (val: boolean) => void;
-  googleDriveConnected: boolean;
-  youtubeConnected: boolean;
-  connectYoutubeChannel: (url: string) => void;
-  googleAccessToken: string | null;
+  authState: AuthState;
+  isLoading: boolean;
+  authError: string | null;
+  isOnboardingOpen: boolean;
+  openOnboarding: () => void;
+  closeOnboarding: () => void;
+  isAuthModalOpen: boolean;
+  authModalTab: 'login' | 'signup';
+  openAuthModal: (tab?: 'login' | 'signup') => void;
+  closeAuthModal: () => void;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<UserProfile>;
+  loginWithCredentials: (identifier: string, password?: string) => Promise<void>;
+  signupWithDetails: (details: {
+    email: string;
+    displayName: string;
+    institutionId?: string;
+    institutionName?: string;
+    campusId?: string;
+    campusName?: string;
+    courseName?: string;
+    role?: UserRole;
+    countryCode?: string;
+    password?: string;
+  }) => Promise<void>;
+  switchDemoUser: (userId: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
+  switchRole: (newRole: UserRole) => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_USER_KEY = 'enemind_current_user_v1';
-const LOCAL_STORAGE_USERS_KEY = 'enemind_all_users_v1';
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_USERS_KEY);
-      return stored ? JSON.parse(stored) : INITIAL_USERS;
-    } catch {
-      return INITIAL_USERS;
-    }
-  });
-
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
-      if (stored) return JSON.parse(stored);
-      // Default to the first user (SunKing or Campus or School)
-      return INITIAL_USERS[2]; // SunKing Company
-    } catch {
-      return INITIAL_USERS[2];
-    }
-  });
-
-  const [isFinanceOfficerMode, setFinanceOfficerMode] = useState<boolean>(false);
-  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>('mock_oauth_gdrive_enemind_token_2026');
-  const [youtubeConnected, setYoutubeConnected] = useState<boolean>(true);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [authState, setAuthState] = useState<AuthState>(AuthState.LOADING_AUTH);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'signup'>('login');
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
-      // Auto-ensure drive sheets exist
-      DriveSheetsService.getSheetsForUser(user);
-    } else {
-      localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
-    }
-  }, [user]);
+    loadSession();
+  }, []);
 
+  // Listen for OAuth postMessage events from popup window
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_USERS_KEY, JSON.stringify(allUsers));
-  }, [allUsers]);
+    function handleOAuthMessage(event: MessageEvent) {
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        const authedUser: UserProfile = event.data.user;
+        setUser(authedUser);
+        setAuthError(null);
+        setIsAuthModalOpen(false);
 
-  const loginWithGoogle = (accountType: AccountType, customData?: Partial<UserProfile>) => {
-    const randomId = `user_${Date.now().toString(36)}`;
-    const name = customData?.name || `Enemind ${accountType.toUpperCase()} User`;
-    const folderName = `${name} – Enemind Data`;
-    
-    const newUser: UserProfile = {
-      id: randomId,
-      name,
-      email: customData?.email || `${accountType}_${Date.now().toString(36).slice(-4)}@enemind.co.ke`,
-      avatarUrl: customData?.avatarUrl || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
-      accountType,
-      studentStage: customData?.studentStage || (accountType === 'student' ? 'campus' : undefined),
-      schoolName: customData?.schoolName,
-      planTier: customData?.planTier || 'basic',
-      kycStatus: accountType === 'landlord' || accountType === 'school' ? 'pending' : 'verified',
-      phone: customData?.phone || '+254 700 000 000',
-      location: customData?.location || 'Nairobi, Kenya',
-      coordinates: customData?.coordinates || { lat: -1.286389, lng: 36.817223 },
-      driveFolderId: `folder_${randomId}_enemind_data`,
-      driveFolderName: folderName,
-      createdAt: new Date().toISOString().split('T')[0],
-      ...customData
-    };
-
-    setAllUsers((prev) => [newUser, ...prev]);
-    setUser(newUser);
-    setGoogleAccessToken(`token_gdrive_${randomId}`);
-    localStorage.setItem('enemind_gauth_token', `token_gdrive_${randomId}`);
-    DriveSheetsService.getSheetsForUser(newUser);
-  };
-
-  const switchUser = (userId: string) => {
-    const found = allUsers.find((u) => u.id === userId);
-    if (found) {
-      setUser(found);
-      setFinanceOfficerMode(false);
-      DriveSheetsService.getSheetsForUser(found);
+        if (!authedUser.onboardingCompleted || authedUser.onboardingStatus === 'PENDING') {
+          setAuthState(AuthState.AUTHENTICATED_NEEDS_ONBOARDING);
+          setIsOnboardingOpen(true);
+        } else {
+          setAuthState(AuthState.AUTHENTICATED_ONBOARDED);
+          setIsOnboardingOpen(false);
+        }
+      } else if (event.data?.type === 'OAUTH_AUTH_ERROR') {
+        setAuthError(event.data.error || 'Google authentication failed');
+        setAuthState(AuthState.AUTHENTICATION_ERROR);
+      }
     }
-  };
 
-  const logout = () => {
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
+  }, []);
+
+  async function loadSession() {
+    try {
+      setAuthState(AuthState.LOADING_AUTH);
+      setAuthError(null);
+      const res = await api.getSession();
+
+      if (res.user) {
+        setUser(res.user);
+        if (!res.user.onboardingCompleted || res.user.onboardingStatus === 'PENDING') {
+          setAuthState(AuthState.AUTHENTICATED_NEEDS_ONBOARDING);
+        } else {
+          setAuthState(AuthState.AUTHENTICATED_ONBOARDED);
+        }
+      } else {
+        setUser(null);
+        setAuthState(AuthState.NOT_AUTHENTICATED);
+      }
+    } catch (err: any) {
+      console.error('Failed to load auth session:', err);
+      setUser(null);
+      setAuthState(AuthState.NOT_AUTHENTICATED);
+    }
+  }
+
+  async function updateUserProfile(updates: Partial<UserProfile>): Promise<UserProfile> {
+    if (!user) throw new Error('No authenticated user session');
+    const res = await api.updateProfile(user.id, updates);
+    setUser(res.user);
+
+    if (res.user.onboardingCompleted && res.user.onboardingStatus === 'COMPLETED') {
+      setAuthState(AuthState.AUTHENTICATED_ONBOARDED);
+      setIsOnboardingOpen(false);
+    }
+    return res.user;
+  }
+
+  function openAuthModal(tab: 'login' | 'signup' = 'login') {
+    setAuthModalTab(tab);
+    setAuthError(null);
+    setIsAuthModalOpen(true);
+  }
+
+  function closeAuthModal() {
+    setIsAuthModalOpen(false);
+  }
+
+  async function loginWithCredentials(identifier: string, password?: string) {
+    try {
+      setAuthState(AuthState.LOADING_AUTH);
+      setAuthError(null);
+      const res = await api.login(identifier, password);
+      setUser(res.user);
+      setIsAuthModalOpen(false);
+      setAuthState(AuthState.AUTHENTICATED_ONBOARDED);
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setAuthError(err.message || 'Login failed. Check your email or student ID.');
+      setAuthState(user ? AuthState.AUTHENTICATED_ONBOARDED : AuthState.NOT_AUTHENTICATED);
+      throw err;
+    }
+  }
+
+  async function signupWithDetails(details: {
+    email: string;
+    displayName: string;
+    institutionId?: string;
+    institutionName?: string;
+    campusId?: string;
+    campusName?: string;
+    courseName?: string;
+    role?: UserRole;
+    countryCode?: string;
+    password?: string;
+  }) {
+    try {
+      setAuthState(AuthState.LOADING_AUTH);
+      setAuthError(null);
+      const res = await api.signup(details);
+      setUser(res.user);
+      setIsAuthModalOpen(false);
+      setAuthState(AuthState.AUTHENTICATED_ONBOARDED);
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      setAuthError(err.message || 'Registration failed.');
+      setAuthState(user ? AuthState.AUTHENTICATED_ONBOARDED : AuthState.NOT_AUTHENTICATED);
+      throw err;
+    }
+  }
+
+  async function switchDemoUser(userId: string) {
+    try {
+      setAuthState(AuthState.LOADING_AUTH);
+      setAuthError(null);
+      const res = await api.switchUser(userId);
+      setUser(res.user);
+      setIsAuthModalOpen(false);
+      setAuthState(AuthState.AUTHENTICATED_ONBOARDED);
+    } catch (err: any) {
+      console.error('Switch user error:', err);
+      setAuthError(err.message || 'Failed to switch user.');
+    }
+  }
+
+  async function signInWithGoogle() {
+    try {
+      setAuthState(AuthState.LOADING_AUTH);
+      setAuthError(null);
+
+      // 1. Fetch OAuth URL from server
+      const { url, isConfigured } = await api.getGoogleAuthUrl();
+
+      if (!isConfigured || !url) {
+        // In AI Studio dev sandbox when GOOGLE_CLIENT_ID is not configured in env,
+        // we can authenticate via server token verification gracefully
+        const demoToken = `google-gsi-${Date.now()}`;
+        const res = await api.verifyGoogleToken(demoToken);
+        setUser(res.user);
+
+        if (!res.user.onboardingCompleted || res.user.onboardingStatus === 'PENDING') {
+          setAuthState(AuthState.AUTHENTICATED_NEEDS_ONBOARDING);
+          setIsOnboardingOpen(true);
+        } else {
+          setAuthState(AuthState.AUTHENTICATED_ONBOARDED);
+        }
+        return;
+      }
+
+      // 2. Open Google OAuth Popup Window
+      const width = 500;
+      const height = 650;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      const popup = window.open(
+        url,
+        'EnermindGoogleAuth',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no,status=no`
+      );
+
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        // Popup blocked by browser: fallback to direct simulation
+        setAuthError('Popup blocked by browser. Please allow popups or use Google token flow.');
+        const fallbackRes = await api.verifyGoogleToken(`google-gsi-${Date.now()}`);
+        setUser(fallbackRes.user);
+        if (!fallbackRes.user.onboardingCompleted) {
+          setAuthState(AuthState.AUTHENTICATED_NEEDS_ONBOARDING);
+          setIsOnboardingOpen(true);
+        } else {
+          setAuthState(AuthState.AUTHENTICATED_ONBOARDED);
+        }
+      }
+    } catch (err: any) {
+      console.error('Google Sign In Error:', err);
+      setAuthError(err.message || 'Google authentication failed');
+      setAuthState(AuthState.AUTHENTICATION_ERROR);
+    }
+  }
+
+  async function signOut() {
+    try {
+      await api.logout();
+    } catch (e) {
+      // Ignore
+    }
     setUser(null);
-    setFinanceOfficerMode(false);
-    localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
-    localStorage.removeItem('enemind_gauth_token');
-  };
+    setAuthState(AuthState.NOT_AUTHENTICATED);
+    setIsOnboardingOpen(false);
+  }
 
-  const updateProfile = (data: Partial<UserProfile>) => {
+  async function switchRole(newRole: UserRole) {
     if (!user) return;
-    const updated = { ...user, ...data };
-    setUser(updated);
-    setAllUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
-  };
-
-  const connectYoutubeChannel = (url: string) => {
-    if (!user) return;
-    updateProfile({ youtubeChannelUrl: url });
-    setYoutubeConnected(true);
-  };
+    await updateUserProfile({ role: newRole });
+  }
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        allUsers,
-        loginWithGoogle,
-        switchUser,
-        logout,
-        updateProfile,
-        isFinanceOfficerMode,
-        setFinanceOfficerMode,
-        googleDriveConnected: !!googleAccessToken,
-        youtubeConnected,
-        connectYoutubeChannel,
-        googleAccessToken
+        authState,
+        isLoading: authState === AuthState.LOADING_AUTH,
+        authError,
+        isOnboardingOpen,
+        openOnboarding: () => setIsOnboardingOpen(true),
+        closeOnboarding: () => setIsOnboardingOpen(false),
+        updateUserProfile,
+        signInWithGoogle,
+        signOut,
+        switchRole,
+        refreshSession: loadSession,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

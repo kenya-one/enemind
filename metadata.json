@@ -1,6 +1,8 @@
 {
-  "name": "Enemind",
-  "description": "Kenyan-focused PWA marketplace, discovery engine, and multi-sided platform for Schools, Companies, Dealers, Landlords, and Students.",
-  "requestFramePermissions": ["geolocation"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "name": "Remix Remix Remix Enermind",
+  "description": "Global digital campus ecosystem connecting university and college students with institutions, academic resources, accommodation, opportunities, gigs, Google Drive/Sheets workspace, and Gemini AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

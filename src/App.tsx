@@ -1,80 +1,137 @@
-import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { AppProvider, useApp } from './context/AppContext';
-import { Navbar } from './components/Navbar';
-import { BottomNav } from './components/BottomNav';
-import { YouTubeLiveModal } from './components/YouTubeLiveModal';
-import { PesapalModal } from './components/PesapalModal';
-import { DriveSyncModal } from './components/DriveSyncModal';
-import { AuthModal } from './components/AuthModal';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import { Home } from './pages/Home';
-import { ShortsFeedPage } from './pages/ShortsFeedPage';
-import { FindlocalPage } from './pages/FindlocalPage';
-import { MarketplacePage } from './pages/MarketplacePage';
-import { SchoolDashboard } from './pages/SchoolDashboard';
-import { CompanyChannelPage } from './pages/CompanyChannelPage';
-import { LandlordChannelPage } from './pages/LandlordChannelPage';
-import { StudentHubPage } from './pages/StudentHubPage';
+import { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext.js';
+import { CurrencyProvider } from './context/CurrencyContext.js';
+import { ConfigProvider } from './context/ConfigContext.js';
+import { Preloader } from './components/Preloader.js';
+import { Header } from './components/Header.js';
+import { Sidebar } from './components/Sidebar.js';
+import { MobileNav } from './components/MobileNav.js';
+import { OnboardingModal } from './components/OnboardingModal.js';
+import { AuthModal } from './components/AuthModal.js';
+import { MyCampusProfileModal } from './components/MyCampusProfileModal.js';
+import { CurrencyModal } from './components/CurrencyModal.js';
+import { IntegrationStatusModal } from './components/IntegrationStatusModal.js';
+import { AIAssistantDrawer } from './components/AIAssistantDrawer.js';
 
-const AppContent: React.FC = () => {
-  const { toastMessage, isAuthModalOpen, authModalMode, closeAuthModal } = useApp();
+// Views
+import { HomeDashboard } from './views/HomeDashboard.js';
+import { AcademicView } from './views/AcademicView.js';
+import { AccommodationView } from './views/AccommodationView.js';
+import { OpportunitiesView } from './views/OpportunitiesView.js';
+import { GigsMarketplaceView } from './views/GigsMarketplaceView.js';
+import { CommunitiesView } from './views/CommunitiesView.js';
+import { EventsView } from './views/EventsView.js';
+import { SheetStoreView } from './views/SheetStoreView.js';
+import { PrivateVaultView } from './views/PrivateVaultView.js';
+import { AdminPortalView } from './views/AdminPortalView.js';
+
+function MainLayout() {
+  const { isLoading: isAuthLoading } = useAuth();
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const [activeView, setActiveView] = useState('home');
+  const [isAIDrawerOpen, setIsAIDrawerOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  useEffect(() => {
+    // Initial brand presentation preloader
+    const timer = setTimeout(() => {
+      setIsAppLoading(false);
+    }, 1400);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'home':
+        return <HomeDashboard onNavigate={setActiveView} onOpenAI={() => setIsAIDrawerOpen(true)} />;
+      case 'academic':
+        return <AcademicView onOpenAI={() => setIsAIDrawerOpen(true)} />;
+      case 'accommodation':
+        return <AccommodationView />;
+      case 'opportunities':
+        return <OpportunitiesView />;
+      case 'gigs':
+        return <GigsMarketplaceView />;
+      case 'communities':
+        return <CommunitiesView />;
+      case 'events':
+        return <EventsView />;
+      case 'sheets':
+        return <SheetStoreView />;
+      case 'vault':
+        return <PrivateVaultView />;
+      case 'admin':
+        return <AdminPortalView />;
+      default:
+        return <HomeDashboard onNavigate={setActiveView} onOpenAI={() => setIsAIDrawerOpen(true)} />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col antialiased selection:bg-blue-500 selection:text-white">
-      {/* Top Navigation */}
-      <Navbar />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      {/* Brand Preloader with Stationary Logo & Orbiting Glow */}
+      <Preloader isLoading={isAppLoading || isAuthLoading} />
 
-      {/* Global In-App Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-20 right-4 z-50 animate-bounce">
-          <div className="px-4 py-2.5 rounded-2xl bg-slate-950/95 text-white text-xs font-semibold shadow-2xl border border-slate-700 backdrop-blur-md flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>{toastMessage}</span>
-          </div>
-        </div>
-      )}
+      {/* Persistent Global Header */}
+      <Header
+        activeView={activeView}
+        onNavigate={setActiveView}
+        onOpenAI={() => setIsAIDrawerOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+      />
 
-      {/* Main Page Routing */}
-      <main className="flex-1 pb-24 sm:pb-12">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/feed" element={<ShortsFeedPage />} />
-          <Route path="/findlocal" element={<FindlocalPage />} />
-          <Route path="/marketplace" element={<MarketplacePage />} />
-          <Route path="/school" element={<SchoolDashboard />} />
-          <Route path="/company" element={<CompanyChannelPage />} />
-          <Route path="/landlord" element={<LandlordChannelPage />} />
-          <Route path="/student" element={<StudentHubPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+      {/* Main App Canvas: Sidebar + Scrollable Content */}
+      <div className="max-w-7xl mx-auto w-full flex-1 flex">
+        {/* Desktop Sidebar */}
+        <Sidebar
+          activeView={activeView}
+          onNavigate={setActiveView}
+          onOpenAI={() => setIsAIDrawerOpen(true)}
+        />
 
-      {/* Mobile Floating Bottom Bar */}
-      <BottomNav />
+        {/* View Main Content Area */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0 overflow-y-auto max-w-full">
+          {renderActiveView()}
+        </main>
+      </div>
 
-      {/* Modals & Overlays */}
-      <YouTubeLiveModal />
-      <PesapalModal />
-      <DriveSyncModal />
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        defaultMode={authModalMode}
-        onClose={closeAuthModal}
+      {/* Mobile Navigation */}
+      <MobileNav
+        activeView={activeView}
+        onNavigate={setActiveView}
+        onOpenAI={() => setIsAIDrawerOpen(true)}
+      />
+
+      {/* Global Modals & Drawers */}
+      <AuthModal />
+      <OnboardingModal />
+      <MyCampusProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
+      <CurrencyModal />
+      <IntegrationStatusModal />
+      <AIAssistantDrawer
+        isOpen={isAIDrawerOpen}
+        onClose={() => setIsAIDrawerOpen(false)}
       />
     </div>
   );
-};
+}
 
 export default function App() {
   return (
-    <HashRouter>
+    <ConfigProvider>
       <AuthProvider>
-        <AppProvider>
-          <AppContent />
-        </AppProvider>
+        <CurrencyProvider>
+          <MainLayout />
+        </CurrencyProvider>
       </AuthProvider>
-    </HashRouter>
+    </ConfigProvider>
   );
 }
